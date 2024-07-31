@@ -15,7 +15,8 @@ func NewAnteHandlerEVM(
 		// outermost AnteDecorator. SetUpContext must be called first
 		NewEthSetUpContextDecorator(&options.EvmKeeper),
 		// Check eth effective gas price against the global MinGasPrice
-		NewEthMinGasPriceDecorator(&options.EvmKeeper),
+		NewMempoolGasPriceDecorator(&options.EvmKeeper),
+		NewGlobalGasPriceDecorator(&options.EvmKeeper),
 		NewEthValidateBasicDecorator(&options.EvmKeeper),
 		NewEthSigVerificationDecorator(&options.EvmKeeper),
 		NewAnteDecVerifyEthAcc(&options.EvmKeeper, options.AccountKeeper),

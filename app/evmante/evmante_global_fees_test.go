@@ -8,7 +8,7 @@ import (
 	"github.com/NibiruChain/nibiru/x/evm/evmtest"
 )
 
-func (s *TestSuite) TestEthMinGasPriceDecorator() {
+func (s *TestSuite) TestGlobalFeeDecorator() {
 	testCases := []struct {
 		name     string
 		txSetup  func(deps *evmtest.TestDeps) sdk.Tx
@@ -17,6 +17,11 @@ func (s *TestSuite) TestEthMinGasPriceDecorator() {
 	}{
 		{
 			name: "happy: min gas price is 0",
+			ctxSetup: func(deps *evmtest.TestDeps) {
+				params := deps.EvmKeeper.GetParams(deps.Ctx)
+				params.GlobalMinGasPrice = sdk.ZeroDec()
+				deps.EvmKeeper.SetParams(deps.Ctx, params)
+			},
 			txSetup: func(deps *evmtest.TestDeps) sdk.Tx {
 				tx := evmtest.HappyCreateContractTx(deps)
 				return tx
@@ -26,12 +31,9 @@ func (s *TestSuite) TestEthMinGasPriceDecorator() {
 		{
 			name: "happy: min gas price is not zero, sufficient fee",
 			ctxSetup: func(deps *evmtest.TestDeps) {
-				gasPrice := sdk.NewInt64Coin("unibi", 1)
-				deps.Ctx = deps.Ctx.
-					WithMinGasPrices(
-						sdk.NewDecCoins(sdk.NewDecCoinFromCoin(gasPrice)),
-					).
-					WithIsCheckTx(true)
+				params := deps.EvmKeeper.GetParams(deps.Ctx)
+				params.GlobalMinGasPrice = sdk.OneDec()
+				deps.EvmKeeper.SetParams(deps.Ctx, params)
 			},
 			txSetup: func(deps *evmtest.TestDeps) sdk.Tx {
 				tx := evmtest.HappyCreateContractTx(deps)
@@ -42,12 +44,9 @@ func (s *TestSuite) TestEthMinGasPriceDecorator() {
 		{
 			name: "sad: insufficient fee",
 			ctxSetup: func(deps *evmtest.TestDeps) {
-				gasPrice := sdk.NewInt64Coin("unibi", 2)
-				deps.Ctx = deps.Ctx.
-					WithMinGasPrices(
-						sdk.NewDecCoins(sdk.NewDecCoinFromCoin(gasPrice)),
-					).
-					WithIsCheckTx(true)
+				params := deps.EvmKeeper.GetParams(deps.Ctx)
+				params.GlobalMinGasPrice = sdk.NewDec(2)
+				deps.EvmKeeper.SetParams(deps.Ctx, params)
 			},
 			txSetup: func(deps *evmtest.TestDeps) sdk.Tx {
 				tx := evmtest.HappyCreateContractTx(deps)
@@ -58,12 +57,9 @@ func (s *TestSuite) TestEthMinGasPriceDecorator() {
 		{
 			name: "sad: tx with non evm message",
 			ctxSetup: func(deps *evmtest.TestDeps) {
-				gasPrice := sdk.NewInt64Coin("unibi", 1)
-				deps.Ctx = deps.Ctx.
-					WithMinGasPrices(
-						sdk.NewDecCoins(sdk.NewDecCoinFromCoin(gasPrice)),
-					).
-					WithIsCheckTx(true)
+				params := deps.EvmKeeper.GetParams(deps.Ctx)
+				params.GlobalMinGasPrice = sdk.OneDec()
+				deps.EvmKeeper.SetParams(deps.Ctx, params)
 			},
 			txSetup: func(deps *evmtest.TestDeps) sdk.Tx {
 				gasLimit := uint64(10)
@@ -80,9 +76,10 @@ func (s *TestSuite) TestEthMinGasPriceDecorator() {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		s.Run(tc.name, func() {
 			deps := evmtest.NewTestDeps()
-			anteDec := evmante.NewEthMinGasPriceDecorator(&deps.Chain.AppKeepers.EvmKeeper)
+			anteDec := evmante.NewGlobalGasPriceDecorator(&deps.Chain.AppKeepers.EvmKeeper)
 
 			tx := tc.txSetup(&deps)
 
